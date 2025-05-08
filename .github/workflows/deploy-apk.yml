@@ -28,8 +28,9 @@ jobs:
         run: |
           wget ${{ secrets.AAB_DOWNLOAD_URL }} -O app.aab
 
-                - name: Decode Keystore from Base64
+      - name: Decode Keystore from Base64
         run: echo "$KEYSTORE_BASE64" | base64 --decode > keystore.jks
+
 
 
       - name: Build APKS

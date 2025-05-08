@@ -1,0 +1,49 @@
+name: Build and Upload APK
+
+on:
+  workflow_dispatch:  # Allows manual run from GitHub UI
+
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install unzip and wget
+        run: sudo apt-get install -y unzip wget
+
+      - name: Download bundletool
+        run: |
+          wget https://github.com/google/bundletool/releases/download/1.15.6/bundletool-all-1.15.6.jar -O bundletool.jar
+
+      - name: Download AAB file (simulate EAS download for now)
+        run: |
+          wget ${{ secrets.AAB_DOWNLOAD_URL }} -O app.aab
+
+      - name: Build APKS
+        run: |
+          java -jar bundletool.jar build-apks \
+          --bundle=app.aab \
+          --output=output.apks \
+          --mode=universal \
+          --ks=${{ secrets.KEYSTORE_PATH }} \
+          --ks-key-alias=${{ secrets.KEY_ALIAS }} \
+          --ks-pass=pass:${{ secrets.KEYSTORE_PASS }} \
+          --key-pass=pass:${{ secrets.KEY_PASS }}
+
+      - name: Unzip APKS
+        run: unzip output.apks -d apks
+
+      - name: Upload to Supabase
+        run: node scripts/deploy-apk.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
